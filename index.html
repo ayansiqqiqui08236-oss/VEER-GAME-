@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAXI WIN Demo</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10131c;color:#fff;font-family:Arial,sans-serif}
+main{max-width:500px;margin:auto;padding:18px}
+header,.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+header{font-size:24px;font-weight:bold;margin-bottom:16px}
+.gold{color:#ffd166}
+.badge{font-size:11px;background:#ffd166;color:#17131b;padding:7px;border-radius:20px}
+.card{background:#1b2030;border:1px solid #30384c;border-radius:16px;padding:16px;margin:14px 0}
+.notice{font-size:12px;line-height:1.6;color:#ffe3a1;background:#332b1c;padding:12px;border-radius:12px}
+.label{color:#aab3c7;font-size:12px}
+.amount{font-size:30px;font-weight:bold;margin:8px 0}
+button,input{font:inherit;border:0;border-radius:10px;padding:12px}
+button{color:white;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5}
+.grey{background:#30384b}
+.colors{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.colors button{padding:20px 4px}
+.red{background:#e94358}
+.green{background:#19a96b}
+.violet{background:#8054e9}
+input{background:#10131c;color:white;border:1px solid #30384c;width:100%;margin:8px 0}
+.primary{background:#ffd166;color:#17131b;width:100%;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:10px 3px;border-bottom:1px solid #30384c}
+small,.muted{color:#aab3c7;font-size:12px;line-height:1.5}
+.bar{height:5px;background:#30384c;margin:10px 0}
+#progress{height:5px;background:#ffd166;width:100%}
+footer{text-align:center;color:#aab3c7;font-size:11px;padding:15px}
+</style>
+</head>
+<body>
+<main>
+<header><span>RAXI <span class="gold">WIN</span></span><span class="badge">DEMO ONLY</span></header>
+
+<div class="notice">Practice demo only. Virtual points have no cash value. No deposits, withdrawals or real-money betting.</div>
+
+<section class="card">
+<div class="label">VIRTUAL BALANCE</div>
+<div class="amount"><span id="balance">1000</span> <small>PTS</small></div>
+<button class="grey" id="add">+100 Demo Points</button>
+</section>
+
+<section class="card">
+<div class="row">
+<div><div class="label">ROUND</div><b id="round">1</b></div>
+<div style="text-align:right"><div class="label">TIME LEFT</div><div class="amount gold" id="timer">30</div></div>
+</div>
+<div class="bar"><div id="progress"></div></div>
+
+<div class="colors">
+<button class="red" data-col="Red">RED</button>
+<button class="green" data-col="Green">GREEN</button>
+<button class="violet" data-col="Violet">VIOLET</button>
+</div>
+
+<p id="status" class="muted">Choose a colour for a virtual practice round.</p>
+<label class="label" for="points">Virtual points (1–100)</label>
+<input id="points" type="number" min="1" max="100" value="10">
+<button id="submit" class="primary">Submit Demo Pick</button>
+</section>
+
+<section class="card">
+<h3>Recent Results</h3>
+<table>
+<thead><tr><th>Round</th><th>Result</th><th>Your Pick</th></tr></thead>
+<tbody id="history"><tr><td colspan="3">No results yet</td></tr></tbody>
+</table>
+</section>
+
+<section class="card">
+<details>
+<summary>Demo Admin Controls</summary>
+<p class="muted">Local demo only. Not a secure production admin panel.</p>
+<label class="label" for="duration">Round duration in seconds</label>
+<input id="duration" type="number" min="10" max="120" value="30">
+<button class="grey" id="apply">Apply Duration</button>
+<button class="grey" id="reset">Reset Demo</button>
+</details>
+</section>
+<footer>RAXI WIN · VIRTUAL COLOUR DEMO · NO CASH VALUE</footer>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+let balance=1000,round=1,duration=30,left=30;
+let choice=null,history=[],last=Date.now(),busy=false;
+const colours=["Red","Green","Violet"];
+
+function render(){
+ $("balance").textContent=balance;
+ $("round").textContent=round;
+ $("timer").textContent=left;
+ $("progress").style.width=(left/duration*100)+"%";
+ $("history").innerHTML=history.length
+ ?history.slice(0,8).map(h=>`<tr><td>${h.round}</td><td>${h.result}</td><td>${h.pick}</td></tr>`).join("")
+ :'<tr><td colspan="3">No results yet</td></tr>';
+ document.querySelectorAll("[data-col]").forEach(b=>b.disabled=busy||!!choice);
+ $("submit").disabled=busy||!choice;
+}
+
+document.querySelectorAll("[data-col]").forEach(b=>{
+ b.onclick=()=>{
+  if(busy||choice)return;
+  let n=Number($("points").value);
+  if(!Number.isInteger(n)||n<1||n>100||n>balance){
+   $("status").textContent="Enter valid virtual points within your balance.";return;
+  }
+  choice={colour:b.dataset.col,points:n};
+  $("status").textContent="Selected "+choice.colour+". Submit your demo pick.";
+  render();
+ };
+});
+
+$("submit").onclick=()=>{
+ if(!choice||busy)return;
+ balance-=choice.points;
+ busy=true;
+ $("status").textContent="Demo pick submitted. Waiting for result.";
+ render();
+};
+
+$("add").onclick=()=>{
+ balance+=100;
+ $("status").textContent="100 virtual points added.";
+ render();
+};
+
+function finishRound(){
+ const result=colours[Math.floor(Math.random()*3)];
+ let pick="—";
+ if(choice){
+  pick=choice.colour;
+  if(choice.colour===result)balance+=choice.points*2;
+ }
+ history.unshift({round,result,pick});
+ history=history.slice(0,20);
+ $("status").textContent="Round "+round+" result: "+result+". Demo only.";
+ round++;
+ choice=null;
+ busy=false;
+ left=duration;
+ last=Date.now();
+ render();
+}
+
+$("apply").onclick=()=>{
+ const n=Number($("duration").value);
+ if(!Number.isInteger(n)||n<10||n>120){
+  $("status").textContent="Duration must be 10–120 seconds.";return;
+ }
+ duration=n;left=n;last=Date.now();render();
+};
+
+$("reset").onclick=()=>{
+ balance=1000;round=1;left=duration;
+ choice=null;history=[];busy=false;last=Date.now();
+ $("status").textContent="Demo reset.";
+ render();
+};
+
+setInterval(()=>{
+ const now=Date.now();
+ if(now-last>=1000){
+  left-=Math.floor((now-last)/1000);
+  last=now;
+  if(left<=0)finishRound();
+  else render();
+ }
+},250);
+
+render();
+</script>
+</body>
+</html>
